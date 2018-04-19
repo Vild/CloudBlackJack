@@ -1,0 +1,11 @@
+.dub
+docs.json
+__dummy.html
+docs/
+/cbj_*
+*.exe
+*.o
+*.obj
+*.lst
+*.a
+*.zlib

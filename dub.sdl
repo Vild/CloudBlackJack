@@ -1,0 +1,33 @@
+name "cloudblackjack"
+description "A cloud rendering thingy for a Realtime Blackjack game, that is scalable"
+authors "Dan Printzell"
+copyright "Copyright © 2018, Dan Printzell"
+license "MPLv2"
+targetType "none"
+
+subPackage {
+	name "common"
+	targetType "staticLibrary"
+	sourcePaths "common/source"
+	importPaths "common/source"
+
+	dependency "derelict-sdl2" version="~>2.1.4"
+}
+
+configuration "client" {
+	targetType "executable"
+	targetName "cbj_client"
+	sourcePaths "client/source"
+	importPaths "client/source"
+
+	dependency "cloudblackjack:common" version="*"
+}
+
+configuration "server" {
+	targetType "executable"
+	targetName "cbj_server"
+	sourcePaths "server/source"
+	importPaths "server/source"
+
+	dependency "cloudblackjack:common" version="*"
+}
