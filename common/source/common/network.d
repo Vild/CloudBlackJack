@@ -4,42 +4,45 @@ import common.sdl;
 import derelict.sdl2.net;
 
 import std.string;
-
-import std.experimental.logger;
-
 import std.zlib;
+import std.typecons;
+import std.experimental.logger;
 
 immutable string ip = "localhost";
 immutable ushort port = 21_21_2;
 
-shared static this() {
-	DerelictSDL2Net.load();
-}
-
-class Client {
+class NetworkClient {
 public:
 	this() {
-		SDLNet_Init();
 		IPaddress ipaddress;
 		SDLNet_ResolveHost(&ipaddress, ip.toStringz, port);
 
 		_socket = SDLNet_TCP_Open(&ipaddress);
+		assert(_socket);
 		_socketSet = SDLNet_AllocSocketSet(1);
+		assert(_socketSet);
 		SDLNet_AddSocket(_socketSet, cast(SDLNet_GenericSocket)_socket);
 	}
 
 	~this() {
 		SDLNet_FreeSocketSet(_socketSet);
 		SDLNet_TCP_Close(_socket);
-		SDLNet_Quit();
 	}
 
 	void recieve(SDL_Surface* surface) {
 		while (!_isDead && SDLNet_CheckSockets(_socketSet, 0) > 0 && SDLNet_SocketReady(_socket)) {
 			log(LogLevel.warning, "Reading frame!");
 			//TODO: Zlib compress
-			int length;
-			int res = SDLNet_TCP_Recv(_socket, &length, cast(int)int.sizeof);
+			int dataLength;
+			int res = SDLNet_TCP_Recv(_socket, &dataLength, cast(int)int.sizeof);
+			if (res < int.sizeof) {
+				_isDead = true;
+				log(LogLevel.error, "isDead = true");
+				return;
+			}
+
+			int originalLength;
+			res = SDLNet_TCP_Recv(_socket, &originalLength, cast(int)int.sizeof);
 			if (res < int.sizeof) {
 				_isDead = true;
 				log(LogLevel.error, "isDead = true");
@@ -47,17 +50,17 @@ public:
 			}
 
 			static ubyte[] data;
-			data.length = length;
+			data.length = dataLength;
 
-			res = SDLNet_TCP_Recv(_socket, data.ptr, length);
-			if (res < length) {
+			res = SDLNet_TCP_Recv(_socket, data.ptr, dataLength);
+			if (res < dataLength) {
 				_isDead = true;
 				log(LogLevel.error, "isDead = true");
 				return;
 			}
 
 			size_t size = surface.pitch * surface.h;
-			(cast(ubyte*)surface.pixels)[0 .. size] = (cast(ubyte[])data.uncompress())[];
+			(cast(ubyte*)surface.pixels)[0 .. size] = (cast(ubyte[])data.uncompress(originalLength))[];
 		}
 	}
 
@@ -84,13 +87,17 @@ public:
 		}
 	}
 
+	@property bool isDead() {
+		return _isDead;
+	}
+
 private:
 	TCPsocket _socket;
 	SDLNet_SocketSet _socketSet;
 	bool _isDead;
 }
 
-class Server {
+class NetworkServer {
 public:
 	this() {
 		SDLNet_Init();
@@ -117,36 +124,42 @@ public:
 		SDLNet_Quit();
 	}
 
-	void doLoop() {
+	/// Returns: The clients that are removed!
+	Tuple!(size_t[], "removeList", NetworkServerClient[], "addedList") doLoop() {
 		import std.algorithm : remove;
+
+		size_t[] removeList;
+		NetworkServerClient[] addedList;
 
 		_clients = _clients.remove!((client) {
 			if (!client._isDead)
 				return false;
+			removeList ~= client.id;
 			client.destroy;
 			return true;
 		});
 
-		log(LogLevel.warning, "doLoop...");
 		while (SDLNet_CheckSockets(_serverSocketSet, 0) && SDLNet_SocketReady(_socket)) {
-			log(LogLevel.warning, "\taccept()...");
+			log(LogLevel.warning, "accept()...");
 			TCPsocket client = SDLNet_TCP_Accept(_socket);
 			if (!client)
 				break;
 
-			_clients ~= new ServerClient(this, client);
+			_clients ~= new NetworkServerClient(this, client);
+			addedList ~= _clients[$ - 1];
 		}
 
 		if (SDLNet_CheckSockets(_socketSet, 0) > 0) {
-			foreach (ServerClient client; _clients)
+			foreach (NetworkServerClient client; _clients)
 				if (SDLNet_SocketReady(client._socket)) {
-					log(LogLevel.warning, "\t(", client._id, ").receive()...");
+					log(LogLevel.warning, "(", client._id, ").receive()...");
 					client.receive();
 				}
 		}
+		return typeof(return)(removeList, addedList);
 	}
 
-	@property ServerClient[] clients() {
+	@property NetworkServerClient[] clients() {
 		return _clients;
 	}
 
@@ -154,12 +167,12 @@ private:
 	TCPsocket _socket;
 	SDLNet_SocketSet _serverSocketSet;
 	SDLNet_SocketSet _socketSet;
-	ServerClient[] _clients;
+	NetworkServerClient[] _clients;
 }
 
-class ServerClient {
+class NetworkServerClient {
 public:
-	this(Server server, TCPsocket socket) {
+	this(NetworkServer server, TCPsocket socket) {
 		_id = _idCounter++;
 		_server = server;
 		_socket = socket;
@@ -179,23 +192,33 @@ public:
 
 		int size = surface.pitch * surface.h;
 		ubyte[] data = compress((cast(ubyte*)surface.pixels)[0 .. size]);
-		int length = cast(int)data.length;
+		int dataLength = cast(int)data.length;
 
-		int res = SDLNet_TCP_Send(_socket, &length, int.sizeof);
+		int res = SDLNet_TCP_Send(_socket, &dataLength, int.sizeof);
 		if (res < int.sizeof) {
 			_isDead = true;
 			log(LogLevel.error, _id, ": isDead = true");
 			return;
 		}
 
-		res = SDLNet_TCP_Send(_socket, data.ptr, length);
-		if (res < length) {
+		res = SDLNet_TCP_Send(_socket, &size, int.sizeof);
+		if (res < int.sizeof) {
 			_isDead = true;
 			log(LogLevel.error, _id, ": isDead = true");
 			return;
 		}
 
-		log(LogLevel.info, "\tdata.length: ", (data.length * 8) / 1000, " Kb");
+		res = SDLNet_TCP_Send(_socket, data.ptr, dataLength);
+		if (res < dataLength) {
+			_isDead = true;
+			log(LogLevel.error, _id, ": isDead = true");
+			return;
+		}
+
+		import std.format : format;
+
+		log(LogLevel.info, "\trealSize: ", (size * 8) / 1000, "Kbit, compressSize: ", (data.length * 8) / 1000, " Kbit.\t ",
+				format("%.2f", (data.length * 100.0f) / size), "% of the original size");
 	}
 
 	void receive() {
@@ -229,10 +252,14 @@ public:
 		return _keys;
 	}
 
+	@property bool isDead() {
+		return _isDead;
+	}
+
 private:
 	static size_t _idCounter;
 	size_t _id;
-	Server _server;
+	NetworkServer _server;
 	TCPsocket _socket;
 	bool _isDead;
 	SDL_Keycode[] _keys;

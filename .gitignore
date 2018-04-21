@@ -9,3 +9,4 @@ docs/
 *.lst
 *.a
 *.zlib
+.gdb_history
