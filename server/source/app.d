@@ -10,6 +10,7 @@ import std.parallelism;
 
 import server.client;
 import server.assets;
+import server.card;
 
 class ServerState : IState {
 public:
@@ -21,6 +22,8 @@ public:
 		_server = new NetworkServer();
 		_textRenderer = new TextRenderer();
 		_assets = new Assets();
+
+		_resetCards();
 	}
 
 	~this() {
@@ -39,6 +42,22 @@ public:
 
 		foreach (newClient; diff.addedList)
 			_clients ~= new Client(this, newClient, _textRenderer.dup, _assets.dup);
+
+		bool setCurrent = true;
+		foreach (Client client; _clients) {
+			if (setCurrent) final switch (client.gameState) with (Client) {
+			case ClientGameState.waitingForTurn:
+				client.gameState = ClientGameState.playing;
+				setCurrent = false;
+				break;
+			case ClientGameState.playing:
+				setCurrent = false;
+				break;
+			case ClientGameState.doneWithTurn:
+				break;
+			}
+			client.update(_globalCardStack);
+		}
 	}
 
 	void render() {
@@ -56,6 +75,10 @@ public:
 		return _textRenderer;
 	}
 
+	@property Card[] houseCards() {
+		return _houseCards;
+	}
+
 private:
 	bool _quit;
 	NetworkServer _server;
@@ -63,6 +86,30 @@ private:
 	TaskPool _taskPool;
 	Assets _assets;
 	TextRenderer _textRenderer;
+
+	Card[] _globalCardStack;
+
+	Card[] _houseCards;
+
+	void _resetCards() {
+		import std.traits : EnumMembers;
+		import std.random : randomShuffle;
+
+		_globalCardStack.length = 0;
+
+		foreach (i; 0 .. 4) // decks
+			foreach (color; EnumMembers!(Card.Color))
+				foreach (val; 1 .. 14)
+					_globalCardStack ~= Card(color, val, true);
+
+		randomShuffle(_globalCardStack);
+
+		_houseCards.length = 0;
+		_houseCards ~= _globalCardStack[0];
+		_houseCards[0].hidden = false;
+		_houseCards ~= _globalCardStack[1];
+		_globalCardStack = _globalCardStack[2 .. $];
+	}
 }
 
 int main(string[] args) {

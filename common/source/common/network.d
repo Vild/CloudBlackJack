@@ -64,7 +64,7 @@ public:
 		}
 	}
 
-	void send(const ref SDL_Keycode[] keys) {
+	void send(const SDL_Keycode[] keys) {
 		if (_isDead)
 			return;
 

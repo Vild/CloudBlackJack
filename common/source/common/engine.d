@@ -24,7 +24,9 @@ public:
 
 	~this() {
 		_window.destroy;
+		_window = null;
 		_sdl.destroy;
+		_sdl = null;
 	}
 
 	int run() {
@@ -49,7 +51,7 @@ public:
 					}
 				} else {
 					bottlenecks = 0;
-					log(LogLevel.warning, "Sleeping for: ", cast(int)(1000 / _targetHZ - msec), " msecs");
+					//log(LogLevel.debug, "Sleeping for: ", cast(int)(1000 / _targetHZ - msec), " msecs");
 					SDL_Delay(cast(int)(1000 / _targetHZ - msec));
 				}
 			}
@@ -74,8 +76,8 @@ public:
 		return _window;
 	}
 
-	@property SDL_Keycode[] keys() {
-		return _keys;
+	@property const(SDL_Keycode)[] keys() {
+		return cast(const(SDL_Keycode)[])_keys;
 	}
 
 private:

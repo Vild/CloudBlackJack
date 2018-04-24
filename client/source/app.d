@@ -9,6 +9,7 @@ import std.experimental.logger;
 class ClientState : IState {
 public:
 	void init(Engine e) {
+		this.e = e;
 		if (e.window) {
 			_renderer = e.window.renderer;
 			_texture = SDL_CreateTexture(_renderer, SDL_PIXELFORMAT_ARGB8888, SDL_TEXTUREACCESS_STREAMING, windowSize.x, windowSize.y);
@@ -24,11 +25,12 @@ public:
 		_client.destroy;
 
 		SDL_FreeSurface(_surface);
-		if (_renderer)
-			SDL_DestroyTexture(_texture);
 	}
 
 	void update() {
+		if (e.keys)
+			_client.send(e.keys);
+
 		if (_renderer)
 			SDL_LockTexture(_texture, null, &_surface.pixels, &_surface.pitch);
 		_client.recieve(_surface);
@@ -53,6 +55,7 @@ public:
 
 private:
 	bool _quit;
+	Engine e;
 	SDL_Renderer* _renderer;
 	SDL_Texture* _texture;
 	SDL_Surface* _surface;
@@ -61,7 +64,13 @@ private:
 }
 
 int main(string[] args) {
-	Engine e = new Engine(false, 30, false);
+	bool displayGUI = true;
+
+	foreach (arg; args[1 .. $])
+		if (arg == "nogui")
+			displayGUI = false;
+
+	Engine e = new Engine(displayGUI, 30, false);
 	scope (exit)
 		e.destroy;
 

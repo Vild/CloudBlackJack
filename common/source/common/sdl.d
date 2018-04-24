@@ -84,8 +84,11 @@ public:
 	}
 
 	~this() {
-		SDL_DestroyRenderer(renderer);
+		if (renderer)
+			SDL_DestroyRenderer(renderer);
+		renderer = null;
 		SDL_DestroyWindow(window);
+		window = null;
 	}
 
 	void reset() {
@@ -99,11 +102,17 @@ public:
 	import std.traits;
 
 	enum Strings {
+		none,
+		waitingForTurn,
 		makeYourMove,
 		waitingForOther,
-		bankWon,
-		youWin,
-		blackjack
+
+		//bankWon,
+		//youWin,
+		//blackjack
+
+		keyActions,
+		keyActions_maxCards
 	}
 
 	alias StrCol = Tuple!(string, "str", SDL_Color, "color");
@@ -112,27 +121,35 @@ public:
 	shared static this() {
 		// dfmt off
 		text = [
+			Strings.none: StrCol(" ", SDL_Color()),
+			Strings.waitingForTurn: StrCol("Waiting for your turn", SDL_Color(0xFF, 0xFF, 0xFF)),
 			Strings.makeYourMove: StrCol("Make your move", SDL_Color(0xFF, 0xFF, 0xFF)),
 			Strings.waitingForOther: StrCol("Waiting for other players", SDL_Color(0xFF, 0xFF, 0xFF)),
-			Strings.bankWon: StrCol("Bank won", SDL_Color(0xFF, 0xFF, 0xFF)),
-			Strings.youWin: StrCol("You won!", SDL_Color(0xFF, 0xFF, 0xFF)),
-			Strings.blackjack: StrCol("BLACKJACK!!!!", SDL_Color(0xFF, 0xFF, 0xFF))
+
+			//Strings.bankWon: StrCol("Bank won", SDL_Color(0xFF, 0xFF, 0xFF)),
+			//Strings.youWin: StrCol("You won!", SDL_Color(0xFF, 0xFF, 0xFF)),
+			//Strings.blackjack: StrCol("BLACKJACK!!!!", SDL_Color(0xFF, 0xFF, 0xFF)),
+
+			Strings.keyActions: StrCol("Press <F> to hit, <J> to stand", SDL_Color(0x00, 0xFF, 0xFF)),
+			Strings.keyActions_maxCards: StrCol("<J> to stand", SDL_Color(0x00, 0xFF, 0xFF)),
 		];
 		// dfmt on
 	}
+
+	__gshared static TTF_Font* font;
+	bool ownsFont;
 
 	SDL_Surface*[Strings] renderedStrings;
 	vec2i[Strings] stringSize;
 
 	this() {
-		auto font = TTF_OpenFont("assets/PxPlus_IBM_EGA8.ttf", 32);
+		font = TTF_OpenFont("assets/PxPlus_IBM_EGA8.ttf", 32);
 		assert(font);
+		ownsFont = true;
 		foreach (strCol; EnumMembers!Strings) {
-			renderedStrings[strCol] = _renderText(font, text[strCol].str, text[strCol].color);
-			stringSize[strCol] = _getSize(font, strCol);
+			renderedStrings[strCol] = renderText(text[strCol].str, text[strCol].color);
+			stringSize[strCol] = getSize(text[strCol].str);
 		}
-
-		TTF_CloseFont(font);
 	}
 
 	this(SDL_Surface*[Strings] renderedStrings_, vec2i[Strings] stringSize_) {
@@ -151,6 +168,11 @@ public:
 		foreach (strCol; EnumMembers!Strings)
 			SDL_FreeSurface(renderedStrings[strCol]);
 		renderedStrings = null;
+
+		if (ownsFont) {
+			TTF_CloseFont(font);
+			font = null;
+		}
 	}
 
 	SDL_Surface* getStringSurface(Strings str) {
@@ -161,19 +183,21 @@ public:
 		return stringSize[str];
 	}
 
-private:
-	SDL_Surface* _renderText(TTF_Font* font, string str, SDL_Color color) {
+	SDL_Surface* renderText(string str, SDL_Color color) {
 		import std.string;
 		import std.experimental.logger;
 
-		return TTF_RenderUTF8_Solid(font, str.toStringz, color);
+		auto surface = TTF_RenderUTF8_Solid(font, str.toStringz, color);
+		assert(surface, "String: " ~ str);
+		return surface;
 	}
 
-	vec2i _getSize(TTF_Font* font, Strings str) {
+	vec2i getSize(string str) {
 		import std.string;
 
 		int w, h;
-		TTF_SizeUTF8(font, text[str].str.toStringz, &w, &h);
+		auto a = font;
+		TTF_SizeUTF8(a, str.toStringz, &w, &h);
 		return vec2i(w, h);
 	}
 }
