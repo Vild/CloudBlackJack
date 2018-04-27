@@ -8,14 +8,21 @@ import common.vector;
 import common.network;
 import common.sdl;
 import common.engine;
+import common.text;
 
 import std.experimental.logger;
 
 class Client {
 	enum ClientGameState {
+		waitingForNextGame,
+		settingUpGame,
 		waitingForTurn,
 		playing,
-		doneWithTurn
+		doneWithTurn,
+		bankIsPlaying,
+		won,
+		lost,
+		blackjack
 	}
 
 	ClientGameState gameState;
@@ -28,13 +35,13 @@ class Client {
 	Assets assets;
 
 	private enum _maxCards = 6;
-	Card[] cards; // = [Card(Card.Color.clubs, 1), Card(Card.Color.diamonds, 2), Card(Card.Color.hearts, 3), Card(Card.Color.spades, 4)];
+	Card[] cards;
 
 	@disable this();
-	this(ServerState serverState_, NetworkServerClient connection_, TextRenderer textRenderer_, Assets assets_) {
+	this(ServerState serverState_, NetworkServerClient connection_, Assets assets_) {
 		serverState = serverState_;
 		connection = connection_;
-		textRenderer = textRenderer_;
+		textRenderer = new TextRenderer();
 		assets = assets_;
 		id = connection.id;
 		surface = SDL_CreateRGBSurfaceWithFormat(0, windowSize.x, windowSize.y, 32, SDL_PIXELFORMAT_ARGB8888);
@@ -57,7 +64,7 @@ class Client {
 		if (gameState != ClientGameState.playing)
 			return;
 
-		if (cards.length < _maxCards && connection.keys.canFind(SDLK_f)) {
+		if (cards.length < _maxCards && calculateSum(cards).sum < 21 && connection.keys.canFind(SDLK_f)) {
 			cards ~= globalCards[0];
 			cards[$ - 1].hidden = false;
 			globalCards = globalCards[1 .. $];
@@ -83,35 +90,63 @@ class Client {
 			Strings topString;
 			Strings bottomStr;
 			final switch (gameState) {
+			case ClientGameState.waitingForNextGame:
+				topString = Strings.waitForNextGame;
+				break;
+			case ClientGameState.settingUpGame:
+				topString = Strings.settingUpGame;
+				break;
 			case ClientGameState.waitingForTurn:
 				topString = Strings.waitingForTurn;
 				break;
 			case ClientGameState.playing:
 				topString = Strings.makeYourMove;
-				bottomStr = cards.length < _maxCards ? Strings.keyActions : Strings.keyActions_maxCards;
+				bottomStr = (cards.length < _maxCards && calculateSum(cards).sum < 21) ? Strings.keyActions : Strings.keyActions_maxCards;
 				break;
 			case ClientGameState.doneWithTurn:
 				topString = Strings.waitingForOther;
 				break;
+
+			case ClientGameState.bankIsPlaying:
+				topString = Strings.bankIsPlaying;
+				break;
+			case ClientGameState.won:
+				topString = Strings.youWin;
+				break;
+			case ClientGameState.lost:
+				topString = Strings.bankWon;
+				break;
+			case ClientGameState.blackjack:
+				topString = Strings.blackjack;
+				break;
 			}
 
-			vec2i size = getStringSize(topString);
-			SDL_Rect dst = SDL_Rect(windowSize.x / 2 - size.x / 2, barSize / 2 - size.y / 2);
-			SDL_BlitSurface(getStringSurface(topString), null, surface, &dst);
+			vec2i textSize = getSize(topString);
+			SDL_Rect dst = SDL_Rect(windowSize.x / 2 - textSize.x / 2, barSize / 2 - textSize.y / 2);
+			render(topString, surface, dst);
 
-			size = getStringSize(bottomStr);
-			dst = SDL_Rect(windowSize.x / 2 - size.x / 2, windowSize.y - barSize + (barSize / 2 - size.y / 2));
-			SDL_BlitSurface(getStringSurface(bottomStr), null, surface, &dst);
+			textSize = getSize(bottomStr);
+			dst = SDL_Rect(windowSize.x / 2 - textSize.x / 2, windowSize.y - barSize + (barSize / 2 - textSize.y / 2));
+			render(bottomStr, surface, dst);
 
 			import std.format : format;
 
-			string valueStr = format("You have: %d", calculateSum(cards));
-			size = getSize(valueStr);
-			dst = SDL_Rect(windowSize.x / 2 - size.x / 2, windowSize.y / 2 - size.y / 2);
-			auto sur = renderText(valueStr, SDL_Color(0xFF, 0x00, 0xFF));
-			scope (exit)
-				SDL_FreeSurface(sur);
-			SDL_BlitSurface(sur, null, surface, &dst);
+			{
+				auto houseSum = calculateSum(serverState.houseCards);
+				string valueStr = format("Bank have: %s%d", houseSum.exact ? "" : "~", houseSum.sum);
+				auto sumtextSize = getSize(valueStr);
+				dst = SDL_Rect(windowSize.x / 2 - sumtextSize.x / 2, windowSize.y / 2 - sumtextSize.y / 2 - 16);
+				color = SDL_Color(0xFF, 0x00, 0xFF);
+				render(valueStr, surface, dst);
+			}
+
+			{
+				string valueStr = format("You have: %d", calculateSum(cards).sum);
+				auto sumtextSize = getSize(valueStr);
+				dst = SDL_Rect(windowSize.x / 2 - sumtextSize.x / 2, windowSize.y / 2 - sumtextSize.y / 2 + 16);
+				color = SDL_Color(0xFF, 0x00, 0xFF);
+				render(valueStr, surface, dst);
+			}
 		}
 
 		{ // House card

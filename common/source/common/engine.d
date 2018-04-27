@@ -47,7 +47,7 @@ public:
 					log(LogLevel.info, "Update took: ", watch.peek());
 					if (_killOnSlow && ++bottlenecks >= 16) {
 						log(LogLevel.error, "\tBreaking code is bottlenecking");
-						break;
+						//break;
 					}
 				} else {
 					bottlenecks = 0;

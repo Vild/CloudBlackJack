@@ -96,20 +96,25 @@ public:
 	}
 }
 
-class TextRenderer {
+/*class TextRenderer {
 public:
 	import std.typecons;
 	import std.traits;
 
 	enum Strings {
 		none,
+		waitForNextGame,
+		settingUpGame,
+
 		waitingForTurn,
 		makeYourMove,
 		waitingForOther,
 
-		//bankWon,
-		//youWin,
-		//blackjack
+		bankIsPlaying,
+
+		bankWon,
+		youWin,
+		blackjack,
 
 		keyActions,
 		keyActions_maxCards
@@ -119,54 +124,57 @@ public:
 	static immutable StrCol[Strings] text;
 
 	shared static this() {
-		// dfmt off
-		text = [
-			Strings.none: StrCol(" ", SDL_Color()),
-			Strings.waitingForTurn: StrCol("Waiting for your turn", SDL_Color(0xFF, 0xFF, 0xFF)),
-			Strings.makeYourMove: StrCol("Make your move", SDL_Color(0xFF, 0xFF, 0xFF)),
-			Strings.waitingForOther: StrCol("Waiting for other players", SDL_Color(0xFF, 0xFF, 0xFF)),
+		enum white = SDL_Color(0xFF, 0xFF, 0xFF);
+		enum cyan = SDL_Color(0x00, 0xFF, 0xFF);
+		enum magenta = SDL_Color(0xFF, 0x00, 0xFF);
 
-			//Strings.bankWon: StrCol("Bank won", SDL_Color(0xFF, 0xFF, 0xFF)),
-			//Strings.youWin: StrCol("You won!", SDL_Color(0xFF, 0xFF, 0xFF)),
-			//Strings.blackjack: StrCol("BLACKJACK!!!!", SDL_Color(0xFF, 0xFF, 0xFF)),
+		text[Strings.none] = StrCol(" ", SDL_Color());
 
-			Strings.keyActions: StrCol("Press <F> to hit, <J> to stand", SDL_Color(0x00, 0xFF, 0xFF)),
-			Strings.keyActions_maxCards: StrCol("<J> to stand", SDL_Color(0x00, 0xFF, 0xFF)),
-		];
-		// dfmt on
+		text[Strings.waitForNextGame] = StrCol("Waiting for next game", magenta);
+		text[Strings.settingUpGame] = StrCol("Setting up game", magenta);
+
+		text[Strings.waitingForTurn] = StrCol("Waiting for your turn", white);
+		text[Strings.makeYourMove] = StrCol("Make your move", white);
+		text[Strings.waitingForOther] = StrCol("Waiting for other players", white);
+		text[Strings.bankIsPlaying] = StrCol("Bank is playing", white);
+
+		text[Strings.bankWon] = StrCol("Bank won", white);
+		text[Strings.youWin] = StrCol("You won!", white);
+		text[Strings.blackjack] = StrCol("BLACKJACK!!!!", white);
+
+		text[Strings.keyActions] = StrCol("Press <F> to hit, <J> to stand", cyan);
+		text[Strings.keyActions_maxCards] = StrCol("<J> to stand", cyan);
 	}
 
 	__gshared static TTF_Font* font;
 	bool ownsFont;
 
-	SDL_Surface*[Strings] renderedStrings;
-	vec2i[Strings] stringSize;
+	alias TextSurface = Tuple!(SDL_Surface*, "surface", vec2i, "size");
+
+	TextSurface[Strings] renderedStrings;
 
 	this() {
 		font = TTF_OpenFont("assets/PxPlus_IBM_EGA8.ttf", 32);
 		assert(font);
 		ownsFont = true;
-		foreach (strCol; EnumMembers!Strings) {
+		foreach (strCol; EnumMembers!Strings)
 			renderedStrings[strCol] = renderText(text[strCol].str, text[strCol].color);
-			stringSize[strCol] = getSize(text[strCol].str);
-		}
 	}
 
-	this(SDL_Surface*[Strings] renderedStrings_, vec2i[Strings] stringSize_) {
+	this(TextSurface[Strings] renderedStrings_) {
 		renderedStrings = renderedStrings_;
-		stringSize = stringSize_;
 	}
 
 	TextRenderer dup() {
-		SDL_Surface*[Strings] renderedStringsDup;
+		TextSurface[Strings] renderedStringsDup;
 		foreach (strCol; EnumMembers!Strings)
-			renderedStringsDup[strCol] = SDL_DuplicateSurface(renderedStrings[strCol]);
-		return new TextRenderer(renderedStringsDup, stringSize.dup);
+			renderedStringsDup[strCol] = TextSurface(SDL_DuplicateSurface(renderedStrings[strCol].surface), renderedStrings[strCol].size);
+		return new TextRenderer(renderedStringsDup);
 	}
 
 	~this() {
 		foreach (strCol; EnumMembers!Strings)
-			SDL_FreeSurface(renderedStrings[strCol]);
+			SDL_FreeSurface(renderedStrings[strCol].surface);
 		renderedStrings = null;
 
 		if (ownsFont) {
@@ -175,29 +183,19 @@ public:
 		}
 	}
 
-	SDL_Surface* getStringSurface(Strings str) {
-		return renderedStrings[str];
+	TextSurface* getStringSurface(Strings str) {
+		return &renderedStrings[str];
 	}
 
-	vec2i getStringSize(Strings str) {
-		return stringSize[str];
-	}
-
-	SDL_Surface* renderText(string str, SDL_Color color) {
+	TextSurface renderText(string str, SDL_Color color) {
 		import std.string;
 		import std.experimental.logger;
 
 		auto surface = TTF_RenderUTF8_Solid(font, str.toStringz, color);
-		assert(surface, "String: " ~ str);
-		return surface;
+		if (!surface) {
+			stderr.writeln("Failed to render string \"", str, "\"");
+			surface = TTF_RenderUTF8_Solid(font, "<FAILED TO RENDER>", color);
+		}
+		return TextSurface(surface, vec2i(surface.w, surface.h));
 	}
-
-	vec2i getSize(string str) {
-		import std.string;
-
-		int w, h;
-		auto a = font;
-		TTF_SizeUTF8(a, str.toStringz, &w, &h);
-		return vec2i(w, h);
-	}
-}
+}*/

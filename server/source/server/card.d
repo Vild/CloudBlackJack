@@ -1,6 +1,7 @@
 module server.card;
 
 import common.vector;
+import std.typecons;
 
 struct Card {
 	enum Color {
@@ -17,12 +18,20 @@ struct Card {
 
 enum cardAssetSize = vec2i(90, 125);
 
+alias Sum = Tuple!(int, "sum", bool, "exact");
+
 /// Return: Will return the max one that is below 22
-int calculateSum(Card[] cards) {
+Sum calculateSum(Card[] cards) {
 	import std.algorithm;
 	import std.array;
 
+	bool exact = true;
+
 	int[] calc(int[] input, Card c) {
+		if (c.hidden) {
+			exact = false;
+			return input;
+		}
 		if (c.value > 10)
 			c.value = 10;
 
@@ -49,7 +58,7 @@ int calculateSum(Card[] cards) {
 	auto sortSums = sums.sort;
 
 	if (auto values = sortSums.filter!(x => x < 22).array) {
-		return values[$ - 1];
+		return Sum(values[$ - 1], exact);
 	} else
-		return sortSums[0];
+		return Sum(sortSums[0], exact);
 }
