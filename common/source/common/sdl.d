@@ -30,8 +30,8 @@ SDL_Surface* SDL_DuplicateSurface(SDL_Surface* surface) {
 
 class SDL {
 public:
-	this() {
-		sdlAssert(!SDL_Init(SDL_INIT_EVENTS | SDL_INIT_VIDEO), "SDL could not initialize!");
+	this(bool needVideo) {
+		sdlAssert(!SDL_Init(SDL_INIT_EVENTS | (needVideo ? SDL_INIT_VIDEO : 0)), "SDL could not initialize!");
 		sdlAssert(IMG_Init(IMG_INIT_PNG), "SDL_image could not initialize!");
 		sdlAssert(!SDLNet_Init(), "SDLNet could not initialize!");
 	}

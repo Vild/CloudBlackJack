@@ -16,7 +16,7 @@ immutable vec2i windowSize = vec2i(640, 480);
 class Engine {
 public:
 	this(bool needWindow, int targetHZ = 30, bool killOnSlow = true) {
-		_sdl = new SDL;
+		_sdl = new SDL(needWindow);
 		if (needWindow)
 			_window = new Window(windowSize);
 		_targetHZ = targetHZ;
