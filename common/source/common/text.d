@@ -138,8 +138,6 @@ private:
 				src.x = (c % 16) * src.w;
 				src.y = (c / 16) * src.h;
 
-				import std.stdio;
-				writeln("SDL_BlitScaled(_font, ",src,", surface, ", dst, ");");
 				SDL_BlitScaled(_font, &src, surface, &dst);
 
 				dst.x += dst.w;

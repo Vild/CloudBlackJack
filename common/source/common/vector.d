@@ -76,7 +76,7 @@ nothrow:
 		}
 
 		/// Assign a Vector with a static array type.
-		@nogc ref Vector opAssign(U)(U arr) pure nothrow
+		@nogc ref Vector opAssign(U)(U arr) pure nothrow 
 				if ((isStaticArray!(U) && isAssignable!(T, typeof(arr[0])) && (arr.length == N))) {
 			mixin(generateLoopCode!("v[@] = arr[@];", N)());
 			return this;
@@ -97,7 +97,7 @@ nothrow:
 		}
 
 		/// Assign from other vectors types (same size, compatible type).
-		@nogc ref Vector opAssign(U)(U x) pure nothrow
+		@nogc ref Vector opAssign(U)(U x) pure nothrow 
 				if (isVector!U && isAssignable!(T, U._T) && (!is(U : Vector)) && (U._N == _N)) {
 			mixin(generateLoopCode!("v[@] = x.v[@];", N)());
 			return this;
@@ -206,7 +206,7 @@ nothrow:
 			return res;
 		}
 
-		@nogc @property void opDispatch(string op, U)(U x) pure
+		@nogc @property void opDispatch(string op, U)(U x) pure 
 				if ((op.length >= 2) && (isValidSwizzleUnique!op) // v.xyy will be rejected
 					 && is(typeof(Vector!(T, op.length)(x)))) // can be converted to a small vector of the right size
 					{

@@ -8,6 +8,7 @@ interface IState {
 	void update();
 	void render();
 	@property bool isDone();
+	@property size_t clientCount();
 }
 
 immutable vec2i windowSize = vec2i(640, 480);
@@ -44,18 +45,18 @@ public:
 			auto msec = watch.peek().total!"msecs";
 			if (_targetHZ) {
 				if (msec > 1000 / _targetHZ) {
-					log(LogLevel.info, "Update took: ", watch.peek());
-					if (_killOnSlow && ++bottlenecks >= 16) {
+					log(LogLevel.info, "Update took: ", watch.peek(), " client count: ", _state.clientCount, ", Try #", bottlenecks);
+					if (_killOnSlow && ++bottlenecks >= 4) {
 						log(LogLevel.error, "\tBreaking code is bottlenecking");
-						//break;
+						break;
 					}
 				} else {
 					bottlenecks = 0;
-					//log(LogLevel.debug, "Sleeping for: ", cast(int)(1000 / _targetHZ - msec), " msecs");
 					SDL_Delay(cast(int)(1000 / _targetHZ - msec));
 				}
 			}
 		}
+
 		_state.destroy;
 		_state = null;
 		return 0;

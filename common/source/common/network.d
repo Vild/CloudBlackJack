@@ -8,12 +8,11 @@ import std.zlib;
 import std.typecons;
 import std.experimental.logger;
 
-immutable string ip = "localhost";
-immutable ushort port = 21_21_2;
+immutable ushort port = 21212;
 
 class NetworkClient {
 public:
-	this() {
+	this(string ip) {
 		IPaddress ipaddress;
 		SDLNet_ResolveHost(&ipaddress, ip.toStringz, port);
 
@@ -31,13 +30,11 @@ public:
 
 	void recieve(SDL_Surface* surface) {
 		while (!_isDead && SDLNet_CheckSockets(_socketSet, 0) > 0 && SDLNet_SocketReady(_socket)) {
-			log(LogLevel.warning, "Reading frame!");
 			//TODO: Zlib compress
 			int dataLength;
 			int res = SDLNet_TCP_Recv(_socket, &dataLength, cast(int)int.sizeof);
 			if (res < int.sizeof) {
 				_isDead = true;
-				log(LogLevel.error, "isDead = true");
 				return;
 			}
 
@@ -45,7 +42,6 @@ public:
 			res = SDLNet_TCP_Recv(_socket, &originalLength, cast(int)int.sizeof);
 			if (res < int.sizeof) {
 				_isDead = true;
-				log(LogLevel.error, "isDead = true");
 				return;
 			}
 
@@ -55,7 +51,6 @@ public:
 			res = SDLNet_TCP_Recv(_socket, data.ptr, dataLength);
 			if (res < dataLength) {
 				_isDead = true;
-				log(LogLevel.error, "isDead = true");
 				return;
 			}
 
@@ -68,13 +63,10 @@ public:
 		if (_isDead)
 			return;
 
-		log(LogLevel.warning, "Sending input...");
-
 		size_t length = keys.length;
 		int res = SDLNet_TCP_Send(_socket, &length, size_t.sizeof);
 		if (res < size_t.sizeof) {
 			_isDead = true;
-			log(LogLevel.error, "isDead = true");
 			return;
 		}
 
@@ -82,7 +74,6 @@ public:
 		res = SDLNet_TCP_Send(_socket, keys.ptr, size);
 		if (res < size) {
 			_isDead = true;
-			log(LogLevel.error, "isDead = true");
 			return;
 		}
 	}
@@ -140,7 +131,6 @@ public:
 		});
 
 		while (SDLNet_CheckSockets(_serverSocketSet, 0) && SDLNet_SocketReady(_socket)) {
-			log(LogLevel.warning, "accept()...");
 			TCPsocket client = SDLNet_TCP_Accept(_socket);
 			if (!client)
 				break;
@@ -151,10 +141,8 @@ public:
 
 		if (SDLNet_CheckSockets(_socketSet, 0) > 0) {
 			foreach (NetworkServerClient client; _clients)
-				if (SDLNet_SocketReady(client._socket)) {
-					log(LogLevel.warning, "(", client._id, ").receive()...");
+				if (SDLNet_SocketReady(client._socket))
 					client.receive();
-				}
 		}
 		return typeof(return)(removeList, addedList);
 	}
@@ -188,8 +176,6 @@ public:
 		if (_isDead)
 			return;
 
-		log(LogLevel.warning, "Sending frame...");
-
 		int size = surface.pitch * surface.h;
 		ubyte[] data = compress((cast(ubyte*)surface.pixels)[0 .. size]);
 		int dataLength = cast(int)data.length;
@@ -197,40 +183,34 @@ public:
 		int res = SDLNet_TCP_Send(_socket, &dataLength, int.sizeof);
 		if (res < int.sizeof) {
 			_isDead = true;
-			log(LogLevel.error, _id, ": isDead = true");
 			return;
 		}
 
 		res = SDLNet_TCP_Send(_socket, &size, int.sizeof);
 		if (res < int.sizeof) {
 			_isDead = true;
-			log(LogLevel.error, _id, ": isDead = true");
 			return;
 		}
 
 		res = SDLNet_TCP_Send(_socket, data.ptr, dataLength);
 		if (res < dataLength) {
 			_isDead = true;
-			log(LogLevel.error, _id, ": isDead = true");
 			return;
 		}
 
 		import std.format : format;
 
-		log(LogLevel.info, "\trealSize: ", (size * 8) / 1000, "Kbit, compressSize: ", (data.length * 8) / 1000, " Kbit.\t ",
-				format("%.2f", (data.length * 100.0f) / size), "% of the original size");
+		// log(LogLevel.info, "\trealSize: ", (size * 8) / 1000, "Kbit, compressSize: ", (data.length * 8) / 1000, " Kbit.\t ", format("%.2f", (data.length * 100.0f) / size), "% of the original size");
 	}
 
 	void receive() {
 		if (_isDead)
 			return;
 
-		log(LogLevel.warning, "Receiveing input...");
 		size_t length;
 		int res = SDLNet_TCP_Recv(_socket, &length, length.sizeof);
 		if (res < length.sizeof) {
 			_isDead = true;
-			log(LogLevel.error, _id, ": isDead = true");
 			return;
 		}
 		_keys.length = length;
@@ -239,7 +219,6 @@ public:
 		res = SDLNet_TCP_Recv(_socket, _keys.ptr, size);
 		if (res < size) {
 			_isDead = true;
-			log(LogLevel.error, _id, ": isDead = true");
 			return;
 		}
 	}

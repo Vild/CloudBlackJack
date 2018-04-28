@@ -3,7 +3,6 @@ module common.sdl;
 public import derelict.sdl2.sdl;
 public import derelict.sdl2.image;
 public import derelict.sdl2.net;
-public import derelict.sdl2.ttf;
 
 import std.stdio;
 
@@ -13,7 +12,6 @@ shared static this() {
 	DerelictSDL2.load();
 	DerelictSDL2Image.load();
 	DerelictSDL2Net.load();
-	DerelictSDL2ttf.load();
 }
 
 void sdlAssert(T, Args...)(T cond, Args args) {
@@ -33,14 +31,12 @@ SDL_Surface* SDL_DuplicateSurface(SDL_Surface* surface) {
 class SDL {
 public:
 	this() {
-		sdlAssert(!SDL_Init(SDL_INIT_EVERYTHING), "SDL could not initialize!");
+		sdlAssert(!SDL_Init(SDL_INIT_EVENTS | SDL_INIT_VIDEO), "SDL could not initialize!");
 		sdlAssert(IMG_Init(IMG_INIT_PNG), "SDL_image could not initialize!");
 		sdlAssert(!SDLNet_Init(), "SDLNet could not initialize!");
-		sdlAssert(!TTF_Init(), "SDL_ttf could not initialize!");
 	}
 
 	~this() {
-		TTF_Quit();
 		SDLNet_Quit();
 		IMG_Quit();
 		SDL_Quit();
@@ -95,107 +91,3 @@ public:
 		SDL_SetRenderTarget(renderer, null);
 	}
 }
-
-/*class TextRenderer {
-public:
-	import std.typecons;
-	import std.traits;
-
-	enum Strings {
-		none,
-		waitForNextGame,
-		settingUpGame,
-
-		waitingForTurn,
-		makeYourMove,
-		waitingForOther,
-
-		bankIsPlaying,
-
-		bankWon,
-		youWin,
-		blackjack,
-
-		keyActions,
-		keyActions_maxCards
-	}
-
-	alias StrCol = Tuple!(string, "str", SDL_Color, "color");
-	static immutable StrCol[Strings] text;
-
-	shared static this() {
-		enum white = SDL_Color(0xFF, 0xFF, 0xFF);
-		enum cyan = SDL_Color(0x00, 0xFF, 0xFF);
-		enum magenta = SDL_Color(0xFF, 0x00, 0xFF);
-
-		text[Strings.none] = StrCol(" ", SDL_Color());
-
-		text[Strings.waitForNextGame] = StrCol("Waiting for next game", magenta);
-		text[Strings.settingUpGame] = StrCol("Setting up game", magenta);
-
-		text[Strings.waitingForTurn] = StrCol("Waiting for your turn", white);
-		text[Strings.makeYourMove] = StrCol("Make your move", white);
-		text[Strings.waitingForOther] = StrCol("Waiting for other players", white);
-		text[Strings.bankIsPlaying] = StrCol("Bank is playing", white);
-
-		text[Strings.bankWon] = StrCol("Bank won", white);
-		text[Strings.youWin] = StrCol("You won!", white);
-		text[Strings.blackjack] = StrCol("BLACKJACK!!!!", white);
-
-		text[Strings.keyActions] = StrCol("Press <F> to hit, <J> to stand", cyan);
-		text[Strings.keyActions_maxCards] = StrCol("<J> to stand", cyan);
-	}
-
-	__gshared static TTF_Font* font;
-	bool ownsFont;
-
-	alias TextSurface = Tuple!(SDL_Surface*, "surface", vec2i, "size");
-
-	TextSurface[Strings] renderedStrings;
-
-	this() {
-		font = TTF_OpenFont("assets/PxPlus_IBM_EGA8.ttf", 32);
-		assert(font);
-		ownsFont = true;
-		foreach (strCol; EnumMembers!Strings)
-			renderedStrings[strCol] = renderText(text[strCol].str, text[strCol].color);
-	}
-
-	this(TextSurface[Strings] renderedStrings_) {
-		renderedStrings = renderedStrings_;
-	}
-
-	TextRenderer dup() {
-		TextSurface[Strings] renderedStringsDup;
-		foreach (strCol; EnumMembers!Strings)
-			renderedStringsDup[strCol] = TextSurface(SDL_DuplicateSurface(renderedStrings[strCol].surface), renderedStrings[strCol].size);
-		return new TextRenderer(renderedStringsDup);
-	}
-
-	~this() {
-		foreach (strCol; EnumMembers!Strings)
-			SDL_FreeSurface(renderedStrings[strCol].surface);
-		renderedStrings = null;
-
-		if (ownsFont) {
-			TTF_CloseFont(font);
-			font = null;
-		}
-	}
-
-	TextSurface* getStringSurface(Strings str) {
-		return &renderedStrings[str];
-	}
-
-	TextSurface renderText(string str, SDL_Color color) {
-		import std.string;
-		import std.experimental.logger;
-
-		auto surface = TTF_RenderUTF8_Solid(font, str.toStringz, color);
-		if (!surface) {
-			stderr.writeln("Failed to render string \"", str, "\"");
-			surface = TTF_RenderUTF8_Solid(font, "<FAILED TO RENDER>", color);
-		}
-		return TextSurface(surface, vec2i(surface.w, surface.h));
-	}
-}*/

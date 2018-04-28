@@ -42,7 +42,8 @@ public:
 		foreach (newClient; diff.addedList)
 			_clients ~= new Client(this, newClient, _assets.dup);
 
-		outerSwitch: final switch (_gameState) {
+	outerSwitch:
+		final switch (_gameState) {
 		case GameState.settingUp:
 			if (!_clients.length) // Can't set up without clients :)
 				break;
@@ -137,7 +138,7 @@ public:
 						c.gameState = Client.ClientGameState.lost;
 					else if (houseSum == 21)
 						c.gameState = Client.ClientGameState.lost;
-					else if (sum == 21)
+					else if (sum == 21 && c.cards.length == 2)
 						c.gameState = Client.ClientGameState.blackjack;
 					else if (sum > houseSum)
 						c.gameState = Client.ClientGameState.won;
@@ -172,6 +173,10 @@ public:
 
 	@property bool isDone() {
 		return _quit;
+	}
+
+	@property size_t clientCount() {
+		return _clients.length;
 	}
 
 	@property Card[] houseCards() {
@@ -230,11 +235,15 @@ private:
 }
 
 int main(string[] args) {
+	import std.conv : to;
+
 	Engine e = new Engine(false);
 	scope (exit)
 		e.destroy;
 
-	e.state = new ServerState(8);
+	assert(args.length == 2, "Usage: <Number of cores allocated>");
+
+	e.state = new ServerState(args[1].to!size_t);
 
 	return e.run();
 }

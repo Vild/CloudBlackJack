@@ -161,7 +161,8 @@ class Client {
 				if (c.hidden)
 					SDL_BlitSurface(assets.back, null, surface, &dst);
 				else {
-					SDL_Rect src = SDL_Rect(cardAssetSize.x * (c.value - 1), cardAssetSize.y * cast(int)c.color, cardAssetSize.x, cardAssetSize.y);
+					SDL_Rect src = SDL_Rect(cardAssetSize.x * (c.value - 1), cardAssetSize.y * cast(int)c.color,
+							cardAssetSize.x, cardAssetSize.y);
 					SDL_BlitSurface(assets.cards, &src, surface, &dst);
 				}
 
@@ -181,7 +182,8 @@ class Client {
 				if (c.hidden)
 					SDL_BlitSurface(assets.back, null, surface, &dst);
 				else {
-					SDL_Rect src = SDL_Rect(cardAssetSize.x * (c.value - 1), cardAssetSize.y * cast(int)c.color, cardAssetSize.x, cardAssetSize.y);
+					SDL_Rect src = SDL_Rect(cardAssetSize.x * (c.value - 1), cardAssetSize.y * cast(int)c.color,
+							cardAssetSize.x, cardAssetSize.y);
 					SDL_BlitSurface(assets.cards, &src, surface, &dst);
 				}
 
