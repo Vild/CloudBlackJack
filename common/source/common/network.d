@@ -10,6 +10,39 @@ import std.experimental.logger;
 
 immutable ushort port = 21212;
 
+private bool /* isDead */ readTCP(T)(ref TCPsocket socket, ref T[] data) {
+	return readTCP(socket, cast(ubyte*)data.ptr, cast(int)(data.length * T.sizeof));
+}
+
+private bool /* isDead */ readTCP(T)(ref TCPsocket socket, ref T data) if (!is(T : E[], E)) {
+	return readTCP(socket, cast(ubyte*)&data, cast(int)T.sizeof);
+}
+
+private bool /* isDead */ readTCP(ref TCPsocket socket, ubyte* data, int length) {
+	int res;
+	do {
+		res = SDLNet_TCP_Recv(socket, data, length);
+		if (res == 0)
+			return true;
+		length -= res;
+		data += res;
+	}
+	while (length > 0);
+	return false;
+}
+
+private bool /* isDead */ sendTCP(T)(ref TCPsocket socket, ref inout(T[]) data) {
+	return sendTCP(socket, cast(inout(ubyte)*)data.ptr, cast(int)(data.length * T.sizeof));
+}
+
+private bool /* isDead */ sendTCP(T)(ref TCPsocket socket, ref T data) if (!is(T : E[], E)) {
+	return sendTCP(socket, cast(ubyte*)&data, cast(int)T.sizeof);
+}
+
+private bool /* isDead */ sendTCP(ref TCPsocket socket, const ubyte* data, int length) {
+	return SDLNet_TCP_Send(socket, data, length) != length;
+}
+
 class NetworkClient {
 public:
 	this(string ip) {
@@ -32,25 +65,24 @@ public:
 		while (!_isDead && SDLNet_CheckSockets(_socketSet, 0) > 0 && SDLNet_SocketReady(_socket)) {
 			//TODO: Zlib compress
 			int dataLength;
-			int res = SDLNet_TCP_Recv(_socket, &dataLength, cast(int)int.sizeof);
-			if (res < int.sizeof) {
+			if (readTCP(_socket, dataLength)) {
 				_isDead = true;
+				log(LogLevel.error, "isDead = true");
 				return;
 			}
 
 			int originalLength;
-			res = SDLNet_TCP_Recv(_socket, &originalLength, cast(int)int.sizeof);
-			if (res < int.sizeof) {
+			if (readTCP(_socket, originalLength)) {
 				_isDead = true;
+				log(LogLevel.error, "isDead = true");
 				return;
 			}
 
 			static ubyte[] data;
 			data.length = dataLength;
-
-			res = SDLNet_TCP_Recv(_socket, data.ptr, dataLength);
-			if (res < dataLength) {
+			if (readTCP(_socket, data)) {
 				_isDead = true;
+				log(LogLevel.error, "isDead = true");
 				return;
 			}
 
@@ -64,16 +96,14 @@ public:
 			return;
 
 		size_t length = keys.length;
-		int res = SDLNet_TCP_Send(_socket, &length, size_t.sizeof);
-		if (res < size_t.sizeof) {
+		if (sendTCP(_socket, length)) {
 			_isDead = true;
+			log(LogLevel.error, "isDead = true");
 			return;
 		}
-
-		int size = cast(int)(keys.length * SDL_Keycode.sizeof);
-		res = SDLNet_TCP_Send(_socket, keys.ptr, size);
-		if (res < size) {
+		if (sendTCP(_socket, keys)) {
 			_isDead = true;
+			log(LogLevel.error, "isDead = true");
 			return;
 		}
 	}
@@ -180,25 +210,25 @@ public:
 		ubyte[] data = compress((cast(ubyte*)surface.pixels)[0 .. size]);
 		int dataLength = cast(int)data.length;
 
-		int res = SDLNet_TCP_Send(_socket, &dataLength, int.sizeof);
-		if (res < int.sizeof) {
+		if (sendTCP(_socket, dataLength)) {
 			_isDead = true;
+			log(LogLevel.error, "isDead = true");
 			return;
 		}
 
-		res = SDLNet_TCP_Send(_socket, &size, int.sizeof);
-		if (res < int.sizeof) {
+		if (sendTCP(_socket, size)) {
 			_isDead = true;
+			log(LogLevel.error, "isDead = true");
 			return;
 		}
 
-		res = SDLNet_TCP_Send(_socket, data.ptr, dataLength);
-		if (res < dataLength) {
+		if (sendTCP(_socket, data)) {
 			_isDead = true;
+			log(LogLevel.error, "isDead = true");
 			return;
 		}
 
-		import std.format : format;
+		//import std.format : format;
 
 		// log(LogLevel.info, "\trealSize: ", (size * 8) / 1000, "Kbit, compressSize: ", (data.length * 8) / 1000, " Kbit.\t ", format("%.2f", (data.length * 100.0f) / size), "% of the original size");
 	}
@@ -208,17 +238,17 @@ public:
 			return;
 
 		size_t length;
-		int res = SDLNet_TCP_Recv(_socket, &length, length.sizeof);
-		if (res < length.sizeof) {
+		if (readTCP(_socket, length)) {
 			_isDead = true;
+			log(LogLevel.error, "isDead = true");
 			return;
 		}
 		_keys.length = length;
 
 		int size = cast(int)(length * SDL_Keycode.sizeof);
-		res = SDLNet_TCP_Recv(_socket, _keys.ptr, size);
-		if (res < size) {
+		if (readTCP(_socket, _keys)) {
 			_isDead = true;
+			log(LogLevel.error, "isDead = true");
 			return;
 		}
 	}

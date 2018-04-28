@@ -42,6 +42,8 @@ public:
 			SDL_UnlockTexture(_texture);
 
 		_quit = _client.isDead;
+		if (_quit)
+			log(LogLevel.warning, "Lost connection!!");
 	}
 
 	void render() {
