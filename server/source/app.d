@@ -170,15 +170,18 @@ public:
 			client.sendFrame();
 		}
 
-		size_t sentBytes;
-		foreach (Client c; _clients)
-			sentBytes += c.connection.sentBytes;
+		if (_clients.length) {
 
-		auto sur = _clients[0].surface;
-		size_t realSize = sur.pitch * sur.h * _clients.length;
+			size_t sentBytes;
+			foreach (Client c; _clients)
+				sentBytes += c.connection.sentBytes;
 
-		writefln("Sent %d KiB (%d KibiBits) \t\t %2.2f%% of the original size", sentBytes / (1024 ^^ 2),
-				(sentBytes * 8) / (1024 ^^ 2), (sentBytes * 100) / realSize);
+			auto sur = _clients[0].surface;
+			size_t realSize = sur.pitch * sur.h * _clients.length;
+
+			writefln("Sent %d KiB (%d KibiBits) \t\t %2.2f%% of the original size", sentBytes / (1024 ^^ 2),
+					(sentBytes * 8) / (1024 ^^ 2), (sentBytes * 100) / realSize);
+		}
 	}
 
 	@property bool isDone() {
