@@ -87,7 +87,10 @@ public:
 			}
 
 			size_t size = surface.pitch * surface.h;
-			(cast(ubyte*)surface.pixels)[0 .. size] = (cast(ubyte[])data.uncompress(originalLength))[];
+			auto netData = data.uncompress(originalLength);
+			scope (exit)
+				netData.destroy;
+			(cast(ubyte*)surface.pixels)[0 .. size] = (cast(ubyte[])netData)[];
 		}
 	}
 
@@ -200,6 +203,7 @@ public:
 	}
 
 	~this() {
+		_sendBuffer.destroy;
 		SDLNet_DelSocket(_server._socketSet, cast(SDLNet_GenericSocket)_socket);
 		SDLNet_TCP_Close(_socket);
 	}
@@ -210,21 +214,15 @@ public:
 
 		int size = surface.pitch * surface.h;
 		ubyte[] data = compress((cast(ubyte*)surface.pixels)[0 .. size]);
-		int dataLength = cast(int)data.length;
+		scope (exit)
+			data.destroy;
+		_sendBuffer.length = data.length + int.sizeof * 2;
 
-		if (sendTCP(_socket, dataLength)) {
-			_isDead = true;
-			log(LogLevel.error, "isDead = true");
-			return;
-		}
+		(cast(int*)_sendBuffer.ptr)[0] = cast(int)data.length;
+		(cast(int*)_sendBuffer.ptr)[1] = size;
+		_sendBuffer[int.sizeof * 2 .. $] = data[0 .. $];
 
-		if (sendTCP(_socket, size)) {
-			_isDead = true;
-			log(LogLevel.error, "isDead = true");
-			return;
-		}
-
-		if (sendTCP(_socket, data)) {
+		if (sendTCP(_socket, _sendBuffer)) {
 			_isDead = true;
 			log(LogLevel.error, "isDead = true");
 			return;
@@ -275,4 +273,6 @@ private:
 	TCPsocket _socket;
 	bool _isDead;
 	SDL_Keycode[] _keys;
+
+	ubyte[] _sendBuffer;
 }
