@@ -169,6 +169,16 @@ public:
 			client.render();
 			client.sendFrame();
 		}
+
+		size_t sentBytes;
+		foreach (Client c; _clients)
+			sentBytes += c.connection.sentBytes;
+
+		auto sur = _clients[0].surface;
+		size_t realSize = sur.pitch * sur.h * _clients.length;
+
+		writefln("Sent %d KiB (%d KibiBits) \t\t %2.2f%% of the original size", sentBytes / (1024 ^^ 2),
+				(sentBytes * 8) / (1024 ^^ 2), (sentBytes * 100) / realSize);
 	}
 
 	@property bool isDone() {
@@ -194,17 +204,13 @@ private:
 	enum _cooldownLength = 4 * 1000;
 	uint _cooldownStart;
 	GameState _gameState;
-
 	bool _quit;
 	NetworkServer _server;
 	Client[] _clients;
 	TaskPool _taskPool;
 	Assets _assets;
-
 	Card[] _globalCardStack;
-
 	Card[] _houseCards;
-
 	void _restartGame() {
 		_houseCards.length = 0;
 		foreach (Client client; _clients)
@@ -219,12 +225,10 @@ private:
 			import std.random : randomShuffle;
 
 			_globalCardStack.length = 0;
-
 			foreach (i; 0 .. 4) // decks
 				foreach (color; EnumMembers!(Card.Color))
 					foreach (val; 1 .. 14)
 						_globalCardStack ~= Card(color, val, true);
-
 			randomShuffle(_globalCardStack);
 		}
 
@@ -240,9 +244,7 @@ int main(string[] args) {
 	Engine e = new Engine(false);
 	scope (exit)
 		e.destroy;
-
 	assert(args.length == 2, "Usage: <Number of cores allocated>");
-
 	e.state = new ServerState(args[1].to!size_t);
 
 	return e.run();

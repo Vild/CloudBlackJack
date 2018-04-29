@@ -190,6 +190,8 @@ private:
 
 class NetworkServerClient {
 public:
+	size_t sentBytes;
+
 	this(NetworkServer server, TCPsocket socket) {
 		_id = _idCounter++;
 		_server = server;
@@ -230,7 +232,8 @@ public:
 
 		//import std.format : format;
 
-		// log(LogLevel.info, "\trealSize: ", (size * 8) / 1000, "Kbit, compressSize: ", (data.length * 8) / 1000, " Kbit.\t ", format("%.2f", (data.length * 100.0f) / size), "% of the original size");
+		//log(LogLevel.info, "\trealSize: ", (size * 8) / 1000, "Kbit, compressSize: ", (data.length * 8) / 1000, " Kbit.\t ", format("%.2f", (data.length * 100.0f) / size), "% of the original size");
+		sentBytes = data.length + int.sizeof * 2;
 	}
 
 	void receive() {
