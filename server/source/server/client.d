@@ -44,7 +44,7 @@ class Client {
 		textRenderer = new TextRenderer();
 		assets = assets_;
 		id = connection.id;
-		surface = SDL_CreateRGBSurfaceWithFormat(0, windowSize.x, windowSize.y, 32, SDL_PIXELFORMAT_ARGB8888);
+		surface = SDL_CreateRGBSurfaceWithFormat(0, windowSize.x, windowSize.y, 32, SDL_PIXELFORMAT_RGB332);
 		assert(surface);
 		assert(surface.format);
 

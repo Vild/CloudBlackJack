@@ -16,11 +16,11 @@ public:
 		this.e = e;
 		if (e.window) {
 			_renderer = e.window.renderer;
-			_texture = SDL_CreateTexture(_renderer, SDL_PIXELFORMAT_ARGB8888, SDL_TEXTUREACCESS_STREAMING, windowSize.x, windowSize.y);
+			_texture = SDL_CreateTexture(_renderer, SDL_PIXELFORMAT_RGB332, SDL_TEXTUREACCESS_STREAMING, windowSize.x, windowSize.y);
 		}
 
 		// Surface is always needed to the recieve function
-		_surface = SDL_CreateRGBSurfaceWithFormat(0, windowSize.x, windowSize.y, 32, SDL_PIXELFORMAT_ARGB8888);
+		_surface = SDL_CreateRGBSurfaceWithFormat(0, windowSize.x, windowSize.y, 32, SDL_PIXELFORMAT_RGB332);
 
 		_client = new NetworkClient(_ip);
 	}

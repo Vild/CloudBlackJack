@@ -32,7 +32,7 @@ class Assets {
 		assert(tmp);
 		scope (exit)
 			SDL_FreeSurface(tmp);
-		SDL_Surface* sur = SDL_ConvertSurfaceFormat(tmp, SDL_PIXELFORMAT_ARGB8888, 0);
+		SDL_Surface* sur = SDL_ConvertSurfaceFormat(tmp, SDL_PIXELFORMAT_RGB332, 0);
 		assert(sur);
 		return sur;
 	}
