@@ -46,8 +46,8 @@ public:
 			if (_targetHZ) {
 				if (msec > 1000 / _targetHZ) {
 					log(LogLevel.info, "Update took: ", watch.peek(), " client count: ", _state.clientCount, ", Try #", bottlenecks);
-					if (_killOnSlow && ++bottlenecks >= 4) {
-						log(LogLevel.error, "\tBreaking code is bottlenecking");
+					if (_killOnSlow && ++bottlenecks >= 2) {
+						log(LogLevel.error, "\tStopping execution, code is bottlenecking");
 						break;
 					}
 				} else {

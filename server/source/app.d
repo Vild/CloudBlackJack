@@ -27,6 +27,10 @@ public:
 	}
 
 	~this() {
+		writeln("===========================");
+		writeln("|| Amount of clients: ", _clients.length, " ||");
+		writeln("===========================");
+
 		_assets.destroy;
 		_server.destroy;
 		_taskPool.stop();
