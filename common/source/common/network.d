@@ -43,7 +43,7 @@ private bool /* isDead */ sendTCP(T)(ref TCPsocket socket, ref T data) if (!is(T
 
 private bool /* isDead */ sendTCP(ref TCPsocket socket, const ubyte* data, int length) {
 	if (!length)
-		return;
+		return false;
 	return SDLNet_TCP_Send(socket, data, length) != length;
 }
 
