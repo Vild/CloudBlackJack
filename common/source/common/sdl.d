@@ -47,12 +47,14 @@ public:
 		SDL_Event event;
 		bool quit = false;
 		while (SDL_PollEvent(&event)) {
+			writeln(event.type);
 			switch (event.type) {
 			case SDL_QUIT:
 				quit = true;
 				break;
 
 			case SDL_KEYDOWN:
+				writeln("\t", cast(SDL_Keycode)event.key.keysym.sym);
 				if (event.key.keysym.sym == SDLK_ESCAPE)
 					quit = true;
 				else

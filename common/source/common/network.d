@@ -19,6 +19,8 @@ private bool /* isDead */ readTCP(T)(ref TCPsocket socket, ref T data) if (!is(T
 }
 
 private bool /* isDead */ readTCP(ref TCPsocket socket, ubyte* data, int length) {
+	if (!length)
+		return false;
 	int res;
 	do {
 		res = SDLNet_TCP_Recv(socket, data, length);
@@ -40,6 +42,8 @@ private bool /* isDead */ sendTCP(T)(ref TCPsocket socket, ref T data) if (!is(T
 }
 
 private bool /* isDead */ sendTCP(ref TCPsocket socket, const ubyte* data, int length) {
+	if (!length)
+		return;
 	return SDLNet_TCP_Send(socket, data, length) != length;
 }
 
